@@ -8,4 +8,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Registro.cs" />
+    <Compile Remove="UserService.cs" />
+  </ItemGroup>
+
 </Project>

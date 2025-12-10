@@ -1,8 +1,7 @@
-﻿/* Sistema básico de gerenciamento e aluguel de livros feito em C#. 
- * 
- *Funcionalidades de cadastro, login e diferentes painéis para administradores (gerenciar livros) e usuários comuns (alugar livros)
+﻿/* Sistema básico de gerenciamento e aluguel de livros feito em C#. 
+ * 
+ *Funcionalidades de cadastro, login e diferentes painéis para administradores (gerenciar livros) e usuários comuns (alugar livros)
 */
-
 class Program
 {
     class User
@@ -13,7 +12,6 @@ class Program
         public bool jaAlugou { get; set; }
         public Livro? Titulo { get; set; }
     }
-
     class Livro
     {
         private static int _proximoId = 1;
@@ -38,6 +36,15 @@ class Program
     static void Main(string[] args)
     {
         List<User> cadastros = new List<User>();
+
+        cadastros.Add(new User
+        {
+            Name = "Admin",
+            Email = "admin@gmail.com",
+            Password = "senhaAdmin",
+            jaAlugou = false,
+            Titulo = null
+        });
 
         List<Livro> livros = new List<Livro>();
 
@@ -65,6 +72,12 @@ class Program
                     string senha = Console.ReadLine() ?? string.Empty;
 
                     Login(cadastros, email, senha, livros);
+                    break;
+                case 0:
+                    Console.WriteLine("Encerrando o sistema");
+                    break;
+                default:
+                    Console.WriteLine("Opção inválida. Tente novamente");
                     break;
             }
         }
@@ -100,23 +113,23 @@ class Program
         Console.WriteLine("Cadastro realizado com sucesso! ");
     }
 
-    /* Função para realizar Login no sistema de aluguel de livros */
-    static void Login(List<User> cadastros, string email, string senha, List<Livro> livros)
+    /* Função para realizar Login no sistema de aluguel de livros */
+    static void Login(List<User> cadastros, string email, string senha, List<Livro> livros)
     {
         User? userEncontrado = cadastros.FirstOrDefault(s => s.Email == email && s.Password == senha);
 
         if (userEncontrado?.Email == "admin@gmail.com")
         {
-            Console.WriteLine($"\nOlá, {userEncontrado.Name}. Redirecionando para o painel de administrador");
+            Console.WriteLine($"\nOlá, {userEncontrado.Name}. Redirecionando para o painel de administrador\n");
             GerenciarLivro(livros);
         }
         else
         {
             if (userEncontrado != null)
             {
-                Console.WriteLine($"Senha bem vindo(a): {userEncontrado.Name}");
-                Console.WriteLine("Redirecionando para o painel de Aluguel de Livros ");
-                AlugarLivro(livros, cadastros, userEncontrado);
+                Console.WriteLine($"Seja bem vindo(a): {userEncontrado.Name}");
+                Console.WriteLine("Redirecionando para o painel de Aluguel de Livros\n");
+                PainelUser(livros, userEncontrado);
             }
             else
             {
@@ -126,8 +139,8 @@ class Program
         }
     }
 
-    /* Função específica para o perfil de Administrador */
-    static void GerenciarLivro(List<Livro> livros)
+    /* Função específica para o perfil de Administrador */
+    static void GerenciarLivro(List<Livro> livros)
     {
         Console.WriteLine("===== Selecione uma opção =====");
         Console.WriteLine("1 - Adicionar Livro");
@@ -190,47 +203,119 @@ class Program
         }
     }
 
-    /* Função para usuários Comuns. Onde podem apenas Alugar livros */
-    static void AlugarLivro(List<Livro> livros, List<User> cadastros, User userLogado)
+    /* Função para que um usuário comum possa Alugar um livro, dentre as opções disponíveis 
+    
+    Função deve receber a lista de livros e o usuário logado.
+
+    */
+    static void AlugarLivro(List<Livro> livros, User userLogado)
+    {
+        Console.WriteLine("Veja a lista de livros disponíveis para aluguel: ");
+
+        List<Livro> livrosdisponiveis = livros.Where(d => d.Alugado == false).ToList();
+
+        foreach (var i in livrosdisponiveis)
+        {
+            Console.WriteLine($"\nId do livro: {i.Id}\n Titulo do Livro: {i.Titulo}\n Autor do livro: {i.Autor}\n Livro já foi alugado: {i.Alugado}\n");
+        }
+
+        int op = 1;
+
+        do
+        {
+            Console.WriteLine("Informe o Id do livro que deseja Alugar: ");
+            int IdLivroAlugado = int.Parse(Console.ReadLine()!);
+
+            Livro? LivrosAluguel = livros.FirstOrDefault(livroalugado => livroalugado.Id == IdLivroAlugado);
+
+            if (LivrosAluguel != null)
+            {
+                LivrosAluguel.UserAluguel = userLogado;
+                LivrosAluguel.Alugado = true;
+
+                userLogado.jaAlugou = true;
+                userLogado.Titulo = LivrosAluguel;
+
+                Console.WriteLine($"Você alugou com sucesso o livro: {LivrosAluguel.Titulo}\n");
+            }
+            else
+            {
+                Console.WriteLine("Erro, informe um ID válido");
+                return;
+            }
+
+            Console.WriteLine("Deseja Alugar outro Livro? (1 - Sim || 2 - Não)");
+            op = int.Parse(Console.ReadLine()!);
+        } while (op == 1);
+    }
+
+    /* Função para que um usuário comum possa Devolver um livro, dentre as opções de livro que o próprio alugou 
+     
+     Função deve receber a Lista de Livros, Usuário logado.
+     
+     */
+    static void DevolverLivro(List<Livro> livros, User userLogado)
+    {
+        Console.WriteLine("\nVeja a lista de livros que alugou:\n");
+
+        List<Livro> LivrosAlugados = livros.Where(a => a.UserAluguel == userLogado).ToList();
+
+        foreach (var LivroAlugado in LivrosAlugados)
+        {
+            Console.WriteLine($"\nId Livro: {LivroAlugado.Id}\n Titulo do livro: {LivroAlugado.Titulo}\n Autor do Livro: {LivroAlugado.Autor}\n");
+        }
+
+        int op = 1;
+
+        do
+        {
+            Console.WriteLine("Digite o ID do livro que deseja remover: ");
+            int IdDevolucao = int.Parse(Console.ReadLine()!);
+
+            Livro? LivroDevolucao = livros.FirstOrDefault(livrodevolucao => livrodevolucao.Id == IdDevolucao);
+
+            if (LivroDevolucao != null)
+            {
+                LivroDevolucao.UserAluguel = null;
+                LivroDevolucao.Alugado = false;
+
+                userLogado.jaAlugou = false;
+                userLogado.Titulo = null;
+            }
+            else
+            {
+                Console.WriteLine("Erro, informe um ID válido");
+                return;
+            }
+
+            Console.WriteLine("Deseja Devolver outro Livro? (1 - Sim || 2 - Não)");
+            op = int.Parse(Console.ReadLine()!);
+        } while (op == 1);
+
+    }
+
+    /* Função para usuários Comuns. Onde podem apenas Alugar livros */
+    static void PainelUser(List<Livro> livros, User userLogado)
     {
         Console.WriteLine("===== Selecione uma opção =====");
         Console.WriteLine("1 - Alugar um Livro");
+        Console.WriteLine("2 - Devolver Livro");
         Console.WriteLine("0 - Sair");
         int op = int.Parse(Console.ReadLine()!);
 
         switch (op)
         {
             case 1:
-                Console.WriteLine("Veja a lista de livros disponível para aluguel\n");
-
-                List<Livro> livrosdisponiveis = livros.Where(d => d.Alugado == false).ToList();
-                foreach (var i in livrosdisponiveis)
-                {
-                    Console.WriteLine($"Id do livro: {i.Id}\n Titulo do Livro: {i.Titulo}\n Autor do livro: {i.Autor}\n Livro já foi alugado: {i.Alugado}");
-                }
-
-                Console.WriteLine("\nInforme o Id do livro que deseja alugar");
-                int idLivroAlugado = int.Parse(Console.ReadLine()!);
-
-                Livro? livroaluguel = livros.FirstOrDefault(la => la.Id == idLivroAlugado);
-
-                if (livroaluguel != null)
-                {
-                    livroaluguel.Alugado = true;
-                    livroaluguel.UserAluguel = userLogado;
-
-                    userLogado.jaAlugou = true;
-                    userLogado.Titulo = livroaluguel;
-
-                    Console.WriteLine($"Sucesso, você alugou '{livroaluguel.Titulo}'.");
-                }
-                else
-                {
-                    Console.WriteLine("Erro ao alugar livro, informe um Id de livro válido");
-                }
+                AlugarLivro(livros, userLogado);
+                break;
+            case 2:
+                DevolverLivro(livros, userLogado);
                 break;
             case 0:
-                Console.WriteLine("Encerrando o sistema de aluguel.");
+                Console.WriteLine("Encerrando o sistema de aluguel...");
+                break;
+            default:
+                Console.WriteLine("Opção inválida, tente novamente");
                 break;
         }
     }
